@@ -151,6 +151,7 @@ objects:
   state.
 
 
+
 ## filament_motion_sensor
 
 The following information is available in
