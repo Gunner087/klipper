@@ -149,9 +149,6 @@ objects:
 - `enabled`: Returns True if the switch sensor is currently enabled.
 - `filament_detected`: Returns True if the sensor is in a triggered
   state.
-- `switch_pin_state`: Returns True/False if the switch_pin digital
-  input is logic 1/0
-
 
 ## filament_motion_sensor
 
@@ -161,8 +158,6 @@ objects:
 - `enabled`: Returns True if the motion sensor is currently enabled.
 - `filament_detected`: Returns True if the sensor is in a triggered
   state.
-- `switch_pin_state`: Returns True/False if the switch_pin digital
-  input is logic 1/0
 
 ## firmware_retraction
 
