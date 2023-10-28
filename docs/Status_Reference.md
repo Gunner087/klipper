@@ -152,6 +152,7 @@ objects:
 - `switch_pin_state`: Returns True/False if the switch_pin digital
   input is logic 1/0
 
+
 ## filament_motion_sensor
 
 The following information is available in
