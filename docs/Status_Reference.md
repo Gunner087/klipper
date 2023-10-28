@@ -150,6 +150,7 @@ objects:
 - `filament_detected`: Returns True if the sensor is in a triggered
   state.
 
+
 ## filament_motion_sensor
 
 The following information is available in
