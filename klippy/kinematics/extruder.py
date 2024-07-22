@@ -164,6 +164,23 @@ class PrinterExtruder:
             'max_extrude_only_distance', 50., minval=0.)
         self.instant_corner_v = config.getfloat(
             'instantaneous_corner_velocity', 1., minval=0.)
+        self.flow_control_temp_lower = config.getfloat(
+            'flow_control_temp_lower', 0., minval=0.)
+        self.flow_control_temp_upper = config.getfloat(
+            'flow_control_temp_upper', 0., minval=0.)
+        self.flow_control_flowrate_lower = config.getfloat(
+            'flow_control_flowrate_lower', 0., minval=0.)
+        self.flow_control_flowrate_upper = config.getfloat(
+            'flow_control_flowrate_upper', 0., minval=0.)
+        self.flow_control_enabled = config.getboolean(
+            'flow_control_enabled', False)
+        self.move_max_flowrate_average = 0.
+        self.flowrate_average_increase_time = config.getfloat(
+            'flowrate_average_increase_time', 15., minval=0.01)
+        self.flowrate_average_decrease_time = config.getfloat(
+            'flowrate_average_decrease_time', 15., minval=0.01)
+        self.max_flowrate_buffer = config.getfloat(
+            'max_flowrate_buffer', 1., minval=0.01)
         # Setup extruder trapq (trapezoidal motion queue)
         ffi_main, ffi_lib = chelper.get_ffi()
         self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
@@ -185,6 +202,14 @@ class PrinterExtruder:
         gcode.register_mux_command("ACTIVATE_EXTRUDER", "EXTRUDER",
                                    self.name, self.cmd_ACTIVATE_EXTRUDER,
                                    desc=self.cmd_ACTIVATE_EXTRUDER_help)
+        gcode.register_mux_command("SET_AVERAGE_FLOWRATE_TIME",
+                                   "EXTRUDER", self.name,
+                                   self.cmd_SET_AVERAGE_FLOWRATE_TIME,
+                                   desc=self.cmd_SET_AVERAGE_FLOWRATE_TIME_help)
+        gcode.register_mux_command("SET_MAX_FLOWRATE_BUFFER",
+                                   "EXTRUDER", self.name,
+                                   self.cmd_SET_MAX_FLOWRATE_BUFFER,
+                                   desc=self.cmd_SET_MAX_FLOWRATE_BUFFER_help)
     def update_move_time(self, flush_time, clear_history_time):
         self.trapq_finalize_moves(self.trapq, flush_time, clear_history_time)
     def get_status(self, eventtime):
@@ -228,6 +253,141 @@ class PrinterExtruder:
                 "Move exceeds maximum extrusion (%.3fmm^2 vs %.3fmm^2)\n"
                 "See the 'max_extrude_cross_section' config option for details"
                 % (area, self.max_extrude_ratio * self.filament_area))
+        else:
+            self.limit_flowrate(move)
+    def limit_flowrate(self, move):
+        if not self.flow_control_enabled or (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
+            return
+        move_max_v = math.sqrt(move.max_cruise_v2)
+        extruder_max_v = move.axes_r[3] * move_max_v
+        move_max_flowrate = self.filament_area * extruder_max_v
+        move_significance = 0.
+        if move_max_flowrate >= self.move_max_flowrate_average:
+            move_significance = min(move.min_move_t / self.flowrate_average_increase_time, 1.)
+        elif move_max_flowrate < self.move_max_flowrate_average:
+            move_significance = min(move.min_move_t / self.flowrate_average_decrease_time, 1.)
+        self.move_max_flowrate_average = (move_significance * move_max_flowrate
+                                              + (1. - move_significance) *
+                                              self.move_max_flowrate_average)
+        temp_for_flowrate_average = max(min(self._linear_interpolation(self.flow_control_flowrate_lower,
+                                                               self.move_max_flowrate_average,
+                                                               self.flow_control_flowrate_upper,
+                                                               self.flow_control_temp_lower,
+                                                               self.flow_control_temp_upper),
+                                                               self.flow_control_temp_upper),
+                                                               self.flow_control_temp_lower)
+        self.heater.set_temp(temp_for_flowrate_average)
+        max_flowrate_for_current_temp = max(min(self._linear_interpolation(self.flow_control_temp_lower,
+                                                                   self.heater.smoothed_temp,
+                                                                   self.flow_control_temp_upper,
+                                                                   self.flow_control_flowrate_lower,
+                                                                   self.flow_control_flowrate_upper),
+                                                                   self.flow_control_flowrate_upper),
+                                                                   self.flow_control_flowrate_lower)
+        if move_max_flowrate > max_flowrate_for_current_temp + self.max_flowrate_buffer:
+            new_move_max_v = (((max_flowrate_for_current_temp + self.max_flowrate_buffer)
+                               / move_max_flowrate) * move_max_v)
+            move.limit_speed(new_move_max_v, move.accel)
+    # def calc_flowrate(self, move):
+    #     if not self.flow_control_enabled or (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
+    #         return
+    #     move_average_v = sum([move.accel_d, move.cruise_d, move.decel_d]) / sum([move.accel_t, move.cruise_t, move.decel_t])
+    #     extruder_average_v = move.axes_r[3] * move_average_v
+    #     move_average_flowrate = self.filament_area * extruder_average_v
+    #     move_significance = min(sum([move.accel_t, move.cruise_t, move.decel_t]) / 10., 1.)
+    #     self.move_average_flowrate_average = (move_significance * move_average_flowrate
+    #                                           + (1. - move_significance) *
+    #                                           self.move_average_flowrate_average)
+    #     temp_for_flowrate_average = self._linear_interpolation(self.flow_control_flowrate_lower,
+    #                                                            self.move_average_flowrate_average,
+    #                                                            self.flow_control_flowrate_upper,
+    #                                                            self.flow_control_temp_lower,
+    #                                                            self.flow_control_temp_upper)
+    #     self.heater.set_temp(temp_for_flowrate_average)
+    # def limit_flowrate(self, move):
+    #     if not self.flow_control_enabled or (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
+    #         return
+    #     move_max_v = math.sqrt(move.max_cruise_v2)
+    #     move_max_e_v = move.axes_r[3] * move_max_v
+    #     move_max_flowrate = self.filament_area * move_max_e_v
+    #     max_flowrate_for_current_temp = self._linear_interpolation(self.flow_control_temp_lower,
+    #                                                                self.heater.smoothed_temp,
+    #                                                                self.flow_control_temp_upper,
+    #                                                                self.flow_control_flowrate_lower,
+    #                                                                self.flow_control_flowrate_upper)
+    #     if move_max_flowrate > max_flowrate_for_current_temp:
+    #         new_move_max_v = ((max_flowrate_for_current_temp / move_max_flowrate)
+    #                           * move_max_v)
+    #         move.limit_speed(new_move_max_v, move.accel)
+    # def limit_flowrate(self, move):
+    #     if not self.flow_control_enabled or (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
+    #         return
+    #     accel_t = max(move.accel_t, 0.)
+    #     cruise_t = max(move.cruise_t, 0.)
+    #     decel_t = max(move.decel_t, 0.)
+    #     move_max_v = 0.
+    #     if cruise_t <= 0:
+    #         move_max_v = max(move.start_v + move.accel * accel_t,
+    #                          move.end_v + move.accel * decel_t)
+    #     else:
+    #         move_max_v = move.cruise_v
+    #     max_extruder_v = move.axes_r[3] * move_max_v
+    #     max_move_flowrate = self.filament_area * max_extruder_v
+    #     move_significance = min(sum([accel_t, cruise_t, decel_t]) / 10., 1.)
+    #     self.move_max_flowrate_average = (move_significance * max_move_flowrate
+    #                                       + (1. - move_significance) *
+    #                                       self.move_max_flowrate_average)
+    #     temp_for_flowrate_average = self._linear_interpolation(self.flow_control_flowrate_lower,
+    #                                                            self.move_max_flowrate_average,
+    #                                                            self.flow_control_flowrate_upper,
+    #                                                            self.flow_control_temp_lower,
+    #                                                            self.flow_control_temp_upper)
+    #     self.heater.set_temp(temp_for_flowrate_average)
+    #     max_flowrate_for_current_temp = self._linear_interpolation(self.flow_control_temp_lower,
+    #                                                                self.heater.smoothed_temp,
+    #                                                                self.flow_control_temp_upper,
+    #                                                                self.flow_control_flowrate_lower,
+    #                                                                self.flow_control_flowrate_upper)
+    #     cruise_flowrate = self.filament_area * move.cruise_v * move.axes_r[3]
+    #     if cruise_flowrate > max_flowrate_for_current_temp:
+    #         new_cruise_v = ((max_flowrate_for_current_temp / cruise_flowrate)
+    #                             * move.cruise_v)
+    #         new_end_v = min(new_cruise_v, move.end_v)
+    #         new_start_v = min(move.start_v, new_cruise_v)
+    #         move.set_junction(new_start_v**2, new_cruise_v**2, new_end_v**2)
+    # def limit_flowrate(self, move):
+    #     recalc_junction = False
+    #     if (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] < 0.:
+    #         return recalc_junction
+    #     approx_toolhead_velocity = math.sqrt(move.max_smoothed_v2)
+    #     if approx_toolhead_velocity <= 0:
+    #         approx_toolhead_velocity = math.sqrt(move.max_cruise_v2)
+    #     e_velocity_requested = move.axes_r[3] * approx_toolhead_velocity
+    #     flowrate_requested = self.filament_area * e_velocity_requested
+    #     approx_move_t = move.move_d / approx_toolhead_velocity
+    #     move_significance = min(approx_move_t / 10., 1.)
+    #     self.flowrate_requested_average = (move_significance * flowrate_requested
+    #                                        + (1. - move_significance) *
+    #                                        self.flowrate_requested_average)
+    #     temp_for_flowrate_average = self._linear_interpolation(self.flow_control_flowrate_lower,
+    #                                                            self.flowrate_requested_average,
+    #                                                            self.flow_control_flowrate_upper,
+    #                                                            self.flow_control_temp_lower,
+    #                                                            self.flow_control_temp_upper)
+    #     self.heater.set_temp(temp_for_flowrate_average)
+    #     max_flowrate_for_current_temp = self._linear_interpolation(self.flow_control_temp_lower,
+    #                                                                self.heater.smoothed_temp,
+    #                                                                self.flow_control_temp_upper,
+    #                                                                self.flow_control_flowrate_lower,
+    #                                                                self.flow_control_flowrate_upper)
+    #     if flowrate_requested > max_flowrate_for_current_temp:
+    #         new_move_speed = ((max_flowrate_for_current_temp / flowrate_requested)
+    #                           * math.sqrt(move.max_cruise_v2))
+    #         move.limit_speed(new_move_speed, move.accel)
+    #         recalc_junction = True
+    #     return recalc_junction
+    def _linear_interpolation(self, x0, x, x1, y0, y1):
+        return y0 + (x-x0) * ((y1-y0)/(x1-x0))
     def calc_junction(self, prev_move, move):
         diff_r = move.axes_r[3] - prev_move.axes_r[3]
         if diff_r:
@@ -282,6 +442,26 @@ class PrinterExtruder:
         toolhead.flush_step_generation()
         toolhead.set_extruder(self, self.last_position)
         self.printer.send_event("extruder:activate_extruder")
+    cmd_SET_AVERAGE_FLOWRATE_TIME_help = ("Change how quickly the automatic "
+                                         "temperature adjustment reacts to "
+                                         "changes in requested flowrate")
+    def cmd_SET_AVERAGE_FLOWRATE_TIME(self, gcmd):
+        increase_time = gcmd.get_float("INCREASE_TIME", 0., minval=0.01)
+        decrease_time = gcmd.get_float("DECREASE_TIME", 0., minval=0.01)
+        if increase_time != 0.:
+            self.flowrate_average_increase_time = increase_time
+        if decrease_time != 0:
+            self.flowrate_average_decrease_time = decrease_time
+    def cmd_INTERDEPENDENT_TEMPERATURE_AND_FLOWRATE(self, gcmd):
+        self.flow_control_enabled = gcmd.get_boolean("ENABLE", False)
+    cmd_SET_MAX_FLOWRATE_BUFFER_help = ("Change how much above the flowrate "
+                                        "in the temperature vs. flowrate curve "
+                                        "the acutal flowrate needs to be before "
+                                        "flowrate limiting occurs")
+    def cmd_SET_MAX_FLOWRATE_BUFFER(self, gcmd):
+        buffer = gcmd.get_float("BUFFER", 0., minval=0.01)
+        if buffer != 0:
+            self.max_flowrate_buffer = buffer
 
 # Dummy extruder class used when a printer has no extruder at all
 class DummyExtruder:

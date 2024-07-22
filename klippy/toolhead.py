@@ -159,12 +159,14 @@ class LookAheadQueue:
                                 mc_v2 = min(mc_v2, ms_v2)
                                 m.set_junction(min(ms_v2, mc_v2), mc_v2
                                                , min(me_v2, mc_v2))
+                                # self.toolhead.extruder.limit_flowrate(m)
                         del delayed[:]
                 if not update_flush_count and i < flush_count:
                     cruise_v2 = min((start_v2 + reachable_start_v2) * .5
                                     , move.max_cruise_v2, peak_cruise_v2)
                     move.set_junction(min(start_v2, cruise_v2), cruise_v2
                                       , min(next_end_v2, cruise_v2))
+                    # self.toolhead.extruder.limit_flowrate(move)
             else:
                 # Delay calculating this move until peak_cruise_v2 is known
                 delayed.append((move, start_v2, next_end_v2))
@@ -181,6 +183,9 @@ class LookAheadQueue:
         if len(self.queue) == 1:
             return
         move.calc_junction(self.queue[-2])
+        # if move.axes_d[3]:
+        #     if(self.toolhead.extruder.limit_flowrate(move)):
+        #         move.calc_junction(self.queue[-2])
         self.junction_flush -= move.min_move_t
         if self.junction_flush <= 0.:
             # Enough moves have been queued to reach the target flush time.
