@@ -233,6 +233,8 @@ class ToolHead:
         self.lookahead.set_flush_time(BUFFER_TIME_HIGH)
         self.commanded_pos = [0., 0., 0., 0.]
         # Velocity and acceleration control
+        self.limit_flowrate = config.getboolean(
+            'limit_flowrate', False)
         self.max_velocity = config.getfloat('max_velocity', above=0.)
         self.max_accel = config.getfloat('max_accel', above=0.)
         min_cruise_ratio = 0.5
@@ -300,6 +302,9 @@ class ToolHead:
                                self.cmd_SET_VELOCITY_LIMIT,
                                desc=self.cmd_SET_VELOCITY_LIMIT_help)
         gcode.register_command('M204', self.cmd_M204)
+        gcode.register_command("LIMIT_FLOWRATE",
+                               self.cmd_LIMIT_FLOWRATE,
+                               desc=self.cmd_LIMIT_FLOWRATE_help)
         self.printer.register_event_handler("klippy:shutdown",
                                             self._handle_shutdown)
         # Load some default modules
@@ -682,6 +687,10 @@ class ToolHead:
             accel = min(p, t)
         self.max_accel = accel
         self._calc_junction_deviation()
+    cmd_LIMIT_FLOWRATE_help = ("Turn the limit flowrate "
+                                        "fuctionality on or off")
+    def cmd_LIMIT_FLOWRATE(self, gcmd):
+        self.limit_flowrate = gcmd.get_int("ENABLE", 1)
 
 def add_printer_objects(config):
     config.get_printer().add_object('toolhead', ToolHead(config))
