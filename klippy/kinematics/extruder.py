@@ -287,7 +287,7 @@ class PrinterExtruder:
                                           + (1. - move_significance) *
                                           self.move_max_flowrate_avg)
         temp_for_max_flowrate_avg = max(min(self._linear_interpolation(self.flow_control_flowrate_lower,
-                                                               self.move_max_flowrate_average,
+                                                               self.move_max_flowrate_avg,
                                                                self.flow_control_flowrate_upper,
                                                                self.flow_control_temp_lower,
                                                                self.flow_control_temp_upper),
