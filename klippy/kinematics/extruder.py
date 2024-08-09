@@ -255,11 +255,11 @@ class PrinterExtruder:
                 "Move exceeds maximum extrusion (%.3fmm^2 vs %.3fmm^2)\n"
                 "See the 'max_extrude_cross_section' config option for details"
                 % (area, self.max_extrude_ratio * self.filament_area))
-        else:
-            if self.temperature_limited_flowrate:
-                self._limit_flowrate_from_temperature(move)
-            if self.flowrate_dependent_temperature:
-                self._set_temperature_from_flowrate(move)
+        # else:
+        #     if self.temperature_limited_flowrate:
+        #         self._limit_flowrate_from_temperature(move)
+        #     if self.flowrate_dependent_temperature:
+        #         self._set_temperature_from_flowrate(move)
     def limit_flowrate_from_temperature(self, move):
         if (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
             return
