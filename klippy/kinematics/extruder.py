@@ -303,6 +303,7 @@ class PrinterExtruder:
         return max(min(self._linear_interpolation(self.flow_control_temp_lower,
                                                   self.heater.smoothed_temp,
                                                   self.flow_control_temp_upper,
+                                                  self.flow_control_flowrate_lower,
                                                   self.flow_control_flowrate_upper),
                                                   self.flow_control_flowrate_upper),
                                                   self.flow_control_flowrate_lower)
