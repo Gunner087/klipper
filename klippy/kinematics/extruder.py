@@ -264,13 +264,7 @@ class PrinterExtruder:
         if (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
             return
         move_max_flowrate = self._get_move_max_flowrate(move)
-        max_flowrate_for_current_temp = max(min(self._linear_interpolation(self.flow_control_temp_lower,
-                                                                   self.heater.smoothed_temp,
-                                                                   self.flow_control_temp_upper,
-                                                                   self.flow_control_flowrate_lower,
-                                                                   self.flow_control_flowrate_upper),
-                                                                   self.flow_control_flowrate_upper),
-                                                                   self.flow_control_flowrate_lower)
+        max_flowrate_for_current_temp = self.get_allowed_flow_at_current_temp()
         if move_max_flowrate > max_flowrate_for_current_temp + self.max_flowrate_buffer:
             move_new_max_v = (((max_flowrate_for_current_temp + self.max_flowrate_buffer)
                                / move_max_flowrate) * math.sqrt(move.max_cruise_v2))
