@@ -150,9 +150,12 @@ class LookAheadQueue:
         for i in range(flush_count-1, -1, -1):
             move = queue[i]
             reachable_start_v2 = next_end_v2 + move.delta_v2
-            flow_limited_start_v2 = move.get_flow_limited_start_v2(next_end_v2)
-            start_v2 = min(move.max_start_v2, reachable_start_v2,
-                           flow_limited_start_v2)
+            if(self.toolhead.limit_flowrate):
+                flow_limited_start_v2 = move.get_flow_limited_start_v2(next_end_v2)
+                start_v2 = min(move.max_start_v2, reachable_start_v2,
+                               flow_limited_start_v2)
+            else:
+                start_v2 = min(move.max_start_v2, reachable_start_v2)
             reachable_smoothed_v2 = next_smoothed_v2 + move.smooth_delta_v2
             smoothed_v2 = min(move.max_smoothed_v2, reachable_smoothed_v2)
             if smoothed_v2 < reachable_smoothed_v2:
@@ -176,11 +179,15 @@ class LookAheadQueue:
                                                , min(me_v2, mc_v2))
                         del delayed[:]
                 if not update_flush_count and i < flush_count:
-                    flow_limited_cruise_v2 = move.get_flow_limited_cruise_v2(
-                        start_v2, next_end_v2)
-                    cruise_v2 = min((start_v2 + reachable_start_v2) * .5
-                                    , move.max_cruise_v2, peak_cruise_v2,
-                                    flow_limited_cruise_v2)
+                    if(self.toolhead.limit_flowrate):
+                        flow_limited_cruise_v2 = move.get_flow_limited_cruise_v2(
+                            start_v2, next_end_v2)
+                        cruise_v2 = min((start_v2 + reachable_start_v2) * .5
+                                        , move.max_cruise_v2, peak_cruise_v2,
+                                        flow_limited_cruise_v2)
+                    else:
+                        cruise_v2 = min((start_v2 + reachable_start_v2) * .5
+                                        , move.max_cruise_v2, peak_cruise_v2)
                     move.set_junction(min(start_v2, cruise_v2), cruise_v2
                                       , min(next_end_v2, cruise_v2))
             else:
