@@ -115,7 +115,7 @@ class Move:
         allowed_v = max(allowed_v, 0.)
         allowed_v2 = allowed_v**2
         reachable_min_start_v2 = next_end_v2 - self.delta_v2
-        return min(allowed_v2, reachable_min_start_v2)
+        return max(allowed_v2, reachable_min_start_v2)
     def get_flow_limited_cruise_v2(self, start_v2, next_end_v2):
         extruder = self.toolhead.extruder
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
