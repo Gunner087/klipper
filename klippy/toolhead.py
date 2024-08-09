@@ -108,8 +108,9 @@ class Move:
     def get_flow_limited_start_v2(self, next_end_v2):
         extruder = self.toolhead.extruder
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
-        allowed_v = ((((2 * allowed_flow) / extruder.filament_area) /
-                      self.axes_r[3]) - math.sqrt(next_end_v2))
+        if self.axes_r[3]:
+            allowed_v = ((((2 * allowed_flow) / extruder.filament_area) /
+                          self.axes_r[3]) - math.sqrt(next_end_v2))
         allowed_v = max(allowed_v, 0.0)
         allowed_v2 = allowed_v**2
         reachable_min_start_v2 = next_end_v2 - self.delta_v2
@@ -117,9 +118,10 @@ class Move:
     def get_flow_limited_cruise_v2(self, start_v2, next_end_v2):
         extruder = self.toolhead.extruder
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
-        allowed_v = ((((allowed_flow / extruder.filament_area) * 0.5) /
-                      self.axes_r[3]) - (math.sqrt(start_v2) * 0.25) -
-                      (math.sqrt(next_end_v2) * 0.25))
+        if self.axes_r[3]:
+            allowed_v = ((((allowed_flow / extruder.filament_area) * 0.5) /
+                          self.axes_r[3]) - (math.sqrt(start_v2) * 0.25) -
+                          (math.sqrt(next_end_v2) * 0.25))
         allowed_v = max(allowed_v, 0.0)
         return allowed_v**2
 
