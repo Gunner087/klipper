@@ -297,7 +297,7 @@ class PrinterExtruder:
     def _get_move_max_flowrate(self, move):
         move_max_v = math.sqrt(move.max_cruise_v2)
         extruder_max_v = move.axes_r[3] * move_max_v
-        move_max_flowrate = self.extruder.filament_area * extruder_max_v
+        move_max_flowrate = self.filament_area * extruder_max_v
         return move_max_flowrate
     def get_allowed_flow_at_current_temp(self):
         return max(min(self._linear_interpolation(self.flow_control_temp_lower,
