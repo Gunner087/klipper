@@ -260,7 +260,7 @@ class PrinterExtruder:
                 self._limit_flowrate_from_temperature(move)
             if self.flowrate_dependent_temperature:
                 self._set_temperature_from_flowrate(move)
-    def limit_flowrate_from_temperature(self, move):
+    def _limit_flowrate_from_temperature(self, move):
         if (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
             return
         move_max_flowrate = self._get_move_max_flowrate(move)
