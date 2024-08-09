@@ -108,15 +108,15 @@ class Move:
     def get_flow_limited_start_v2(self, next_end_v2):
         extruder = self.toolhead.extruder
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
-        allowed_v = ((2 * allowed_flow) / extruder.filament_area -
+        allowed_v = (((2 * allowed_flow) / extruder.filament_area) -
                      math.sqrt(next_end_v2))
         return allowed_v**2
     def get_flow_limited_cruise_v2(self, start_v2, next_end_v2):
         extruder = self.toolhead.extruder
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
-        allowed_v = ((allowed_flow / extruder.filament_area) * 0.5 -
-                     math.sqrt(start_v2) * 0.25 - math.sqrt(next_end_v2) *
-                     0.25)
+        allowed_v = (((allowed_flow / extruder.filament_area) * 0.5) -
+                     (math.sqrt(start_v2) * 0.25) - (math.sqrt(next_end_v2) *
+                     0.25))
         return allowed_v**2
 
 LOOKAHEAD_FLUSH_TIME = 0.250
@@ -154,7 +154,7 @@ class LookAheadQueue:
                 flow_limited_start_v2 = move.get_flow_limited_start_v2(next_end_v2)
                 start_v2 = min(move.max_start_v2, reachable_start_v2,
                                flow_limited_start_v2)
-            elif(not self.toolhead.limit_flowrate or start_v2 <= 0):
+            elif(not self.toolhead.limit_flowrate or start_v2 <= 0.):
                 start_v2 = min(move.max_start_v2, reachable_start_v2)
             reachable_smoothed_v2 = next_smoothed_v2 + move.smooth_delta_v2
             smoothed_v2 = min(move.max_smoothed_v2, reachable_smoothed_v2)
@@ -185,7 +185,7 @@ class LookAheadQueue:
                         cruise_v2 = min((start_v2 + reachable_start_v2) * .5
                                         , move.max_cruise_v2, peak_cruise_v2,
                                         flow_limited_cruise_v2)
-                    elif(not self.toolhead.limit_flowrate or cruise_v2 <= 0):
+                    elif(not self.toolhead.limit_flowrate or cruise_v2 <= 0.):
                         cruise_v2 = min((start_v2 + reachable_start_v2) * .5
                                         , move.max_cruise_v2, peak_cruise_v2)
                     move.set_junction(min(start_v2, cruise_v2), cruise_v2
