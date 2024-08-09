@@ -158,7 +158,7 @@ class LookAheadQueue:
         for i in range(flush_count-1, -1, -1):
             move = queue[i]
             reachable_start_v2 = next_end_v2 + move.delta_v2
-            if self.toolhead.limit_flowrate and move.axes_d[3] > 0.:
+            if self.toolhead.limit_flowrate and (move.axes_d[0] or move.axes_d[1]) and move.axes_r[3] > 0.:
                 flow_limited_start_v2 = move.get_flow_limited_start_v2(next_end_v2)
                 start_v2 = min(move.max_start_v2, reachable_start_v2,
                                flow_limited_start_v2)
@@ -187,7 +187,7 @@ class LookAheadQueue:
                                                , min(me_v2, mc_v2))
                         del delayed[:]
                 if not update_flush_count and i < flush_count:
-                    if self.toolhead.limit_flowrate and move.axes_d[3] > 0.:
+                    if self.toolhead.limit_flowrate and (move.axes_d[0] or move.axes_d[1]) and move.axes_r[3] > 0.:
                         flow_limited_cruise_v2 = move.get_flow_limited_cruise_v2(
                             start_v2, next_end_v2)
                         cruise_v2 = min((start_v2 + reachable_start_v2) * .5
