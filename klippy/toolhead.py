@@ -110,7 +110,7 @@ class Move:
         allowed_flow = extruder.get_allowed_flow_at_current_temp()
         allowed_v = ((((2 * allowed_flow) / extruder.filament_area) /
                       self.axes_r[3]) - math.sqrt(next_end_v2))
-        allowed_v = max(allowed_v, 0)
+        allowed_v = max(allowed_v, 0.0)
         allowed_v2 = allowed_v**2
         reachable_min_start_v2 = next_end_v2 - self.delta_v2
         return min(allowed_v2, reachable_min_start_v2)
@@ -120,7 +120,7 @@ class Move:
         allowed_v = ((((allowed_flow / extruder.filament_area) * 0.5) /
                       self.axes_r[3]) - (math.sqrt(start_v2) * 0.25) -
                       (math.sqrt(next_end_v2) * 0.25))
-        allowed_v = max(allowed_v, 0)
+        allowed_v = max(allowed_v, 0.0)
         return allowed_v**2
 
 LOOKAHEAD_FLUSH_TIME = 0.250
