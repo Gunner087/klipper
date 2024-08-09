@@ -177,8 +177,18 @@ class LookAheadQueue:
                     if update_flush_count and peak_cruise_v2:
                         flush_count = i
                         update_flush_count = False
-                    peak_cruise_v2 = min(move.max_cruise_v2, (
-                        smoothed_v2 + reachable_smoothed_v2) * .5)
+                    if self.toolhead.limit_flowrate and (move.axes_d[0] or move.axes_d[1]) and move.axes_r[3] > 0.:
+                        flow_limited_peak_cruise_v2 = move.get_flow_limited_cruise_v2(
+                            start_v2, next_end_v2)
+                        peak_cruise_v2 = min(move.max_cruise_v2, (
+                            smoothed_v2 + reachable_smoothed_v2) * .5,
+                            flow_limited_peak_cruise_v2)
+                    else:
+                        peak_cruise_v2 = min(move.max_cruise_v2, (
+                            smoothed_v2 + reachable_smoothed_v2) * .5)
+                    if not self.toolhead.limit_flowrate or peak_cruise_v2 <= 0.0:
+                        peak_cruise_v2 = min(move.max_cruise_v2, (
+                            smoothed_v2 + reachable_smoothed_v2) * .5)
                     if delayed:
                         # Propagate peak_cruise_v2 to any delayed moves
                         if not update_flush_count and i < flush_count:
