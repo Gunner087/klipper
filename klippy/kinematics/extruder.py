@@ -172,10 +172,10 @@ class PrinterExtruder:
             'flow_control_flowrate_lower', 0., minval=0.)
         self.flow_control_flowrate_upper = config.getfloat(
             'flow_control_flowrate_upper', 0., minval=0.)
-        self.move_max_flowrate_average = 0.
-        self.flowrate_average_increase_time = config.getfloat(
+        self.move_max_flowrate_avg = 0.
+        self.flowrate_avg_increase_time = config.getfloat(
             'flowrate_average_increase_time', 15., minval=0.01)
-        self.flowrate_average_decrease_time = config.getfloat(
+        self.flowrate_avg_decrease_time = config.getfloat(
             'flowrate_average_decrease_time', 15., minval=0.01)
         self.max_flowrate_buffer = config.getfloat(
             'max_flowrate_buffer', 1., minval=0.01)
@@ -281,7 +281,7 @@ class PrinterExtruder:
         move_max_flowrate = self._get_move_max_flowrate(move)
         if move_max_flowrate >= self.move_max_flowrate_avg:
             move_significance = min(move.min_move_t / self.flowrate_avg_increase_time, 1.)
-        elif move_max_flowrate < self.move_max_flowrate_average:
+        elif move_max_flowrate < self.move_max_flowrate_avg:
             move_significance = min(move.min_move_t / self.flowrate_avg_decrease_time, 1.)
         self.move_max_flowrate_avg = (move_significance * move_max_flowrate
                                           + (1. - move_significance) *
