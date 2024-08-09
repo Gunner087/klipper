@@ -154,7 +154,7 @@ class LookAheadQueue:
                 flow_limited_start_v2 = move.get_flow_limited_start_v2(next_end_v2)
                 start_v2 = min(move.max_start_v2, reachable_start_v2,
                                flow_limited_start_v2)
-            elif(not self.toolhead.limit_flowrate or start_v2 <= 0.):
+            elif(not self.toolhead.limit_flowrate or start_v2 <= 0.1):
                 start_v2 = min(move.max_start_v2, reachable_start_v2)
             reachable_smoothed_v2 = next_smoothed_v2 + move.smooth_delta_v2
             smoothed_v2 = min(move.max_smoothed_v2, reachable_smoothed_v2)
@@ -185,7 +185,7 @@ class LookAheadQueue:
                         cruise_v2 = min((start_v2 + reachable_start_v2) * .5
                                         , move.max_cruise_v2, peak_cruise_v2,
                                         flow_limited_cruise_v2)
-                    elif(not self.toolhead.limit_flowrate or cruise_v2 <= 0.):
+                    elif(not self.toolhead.limit_flowrate or cruise_v2 <= 0.1):
                         cruise_v2 = min((start_v2 + reachable_start_v2) * .5
                                         , move.max_cruise_v2, peak_cruise_v2)
                     move.set_junction(min(start_v2, cruise_v2), cruise_v2
