@@ -273,7 +273,7 @@ class PrinterExtruder:
                                                                    self.flow_control_flowrate_lower)
         if move_max_flowrate > max_flowrate_for_current_temp + self.max_flowrate_buffer:
             move_new_max_v = (((max_flowrate_for_current_temp + self.max_flowrate_buffer)
-                               / move_max_flowrate) * math.sqrt(move.cruise_v2))
+                               / move_max_flowrate) * math.sqrt(move.max_cruise_v2))
             move.limit_speed(move_new_max_v, move.accel)
     def _set_temperature_from_flowrate(self, move):
         if (not move.axes_d[0] and not move.axes_d[1]) or move.axes_r[3] <= 0.:
